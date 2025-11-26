@@ -25,7 +25,7 @@ class CarroService:
 
     # NOVO
     def atualizar_carro(self, id_carro, modelo, ano, placa):
-        if int(ano) > 2025:
+        if int(ano) > 2027:
             raise Exception("Ano inválido!")
         
         dados = {"modelo": modelo, "ano": ano, "placa": placa}
