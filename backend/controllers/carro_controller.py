@@ -8,23 +8,23 @@ service = CarroService()
 def criar():
     dados = request.json
     try:
-        carro = service.registrar_carro(dados['modelo'], dados['ano'], dados['placa'])
+        img = dados.get('imagem')
+        carro = service.registrar_carro(dados['modelo'], dados['ano'], dados['placa'], img)
         return jsonify(carro), 201
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
 
-# ATUALIZADO: Aceita ?termo=Opala
 @carro_bp.route('/carros', methods=['GET'])
 def listar():
-    termo = request.args.get('termo') # Pega o que foi digitado na busca
+    termo = request.args.get('termo')
     return jsonify(service.buscar_carros(termo))
 
-# NOVO: Rota para Editar (PUT)
 @carro_bp.route('/carros/<id_carro>', methods=['PUT'])
 def editar(id_carro):
     dados = request.json
     try:
-        carro = service.atualizar_carro(id_carro, dados['modelo'], dados['ano'], dados['placa'])
+        img = dados.get('imagem')
+        carro = service.atualizar_carro(id_carro, dados['modelo'], dados['ano'], dados['placa'], img)
         if carro:
             return jsonify(carro), 200
         return jsonify({"erro": "Carro não encontrado"}), 404
