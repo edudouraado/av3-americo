@@ -13,11 +13,24 @@ def criar():
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
 
+# ATUALIZADO: Aceita ?termo=Opala
 @carro_bp.route('/carros', methods=['GET'])
 def listar():
-    return jsonify(service.buscar_carros())
+    termo = request.args.get('termo') # Pega o que foi digitado na busca
+    return jsonify(service.buscar_carros(termo))
 
-# NOVA ROTA DE DELETE
+# NOVO: Rota para Editar (PUT)
+@carro_bp.route('/carros/<id_carro>', methods=['PUT'])
+def editar(id_carro):
+    dados = request.json
+    try:
+        carro = service.atualizar_carro(id_carro, dados['modelo'], dados['ano'], dados['placa'])
+        if carro:
+            return jsonify(carro), 200
+        return jsonify({"erro": "Carro não encontrado"}), 404
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 400
+
 @carro_bp.route('/carros/<id_carro>', methods=['DELETE'])
 def deletar(id_carro):
     service.excluir_carro(id_carro)

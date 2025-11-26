@@ -8,8 +8,23 @@ class CarroRepository:
     def listar_todos(self):
         return banco_de_dados
 
+    # NOVO: Busca Inteligente (Expert)
+    def filtrar(self, termo):
+        termo = termo.lower()
+        # Filtra por Modelo OU Placa
+        return [c for c in banco_de_dados if termo in c['modelo'].lower() or termo in c['placa'].lower()]
+
+    # NOVO: Atualizar
+    def atualizar(self, id_carro, novos_dados):
+        for carro in banco_de_dados:
+            if carro['id'] == id_carro:
+                carro['modelo'] = novos_dados['modelo']
+                carro['ano'] = novos_dados['ano']
+                carro['placa'] = novos_dados['placa']
+                return carro
+        return None
+
     def excluir(self, id_carro):
-        # Filtra a lista mantendo apenas os carros que NÃO têm aquele ID
         global banco_de_dados
         banco_de_dados = [c for c in banco_de_dados if c['id'] != id_carro]
         return True

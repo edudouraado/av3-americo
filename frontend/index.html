@@ -15,8 +15,8 @@
             --accent-color: #3b82f6;
             --accent-hover: #2563eb;
             --border-color: #334155;
-            --error-color: #ef4444; /* Vermelho para erro/delete */
-            --error-hover: #dc2626;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b; /* Cor para edição */
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -60,6 +60,7 @@
         }
         input:focus { outline: none; border-color: var(--accent-color); }
         
+        /* Botão Principal */
         button#btnSalvar {
             margin-top: 10px;
             background: var(--accent-color);
@@ -74,8 +75,26 @@
             width: 100%;
         }
         button#btnSalvar:hover { background: var(--accent-hover); }
+        
+        /* Estilo quando está editando */
+        button#btnSalvar.edit-mode {
+            background: var(--warning-color);
+        }
+        button#btnSalvar.edit-mode:after {
+            content: " (Modo Edição)";
+            font-size: 0.8rem;
+        }
 
-        .inventory-section { width: 100%; max-width: 1000px; margin-top: 60px; }
+        /* Barra de Busca */
+        .search-bar {
+            margin-top: 40px;
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .inventory-section { width: 100%; max-width: 1000px; margin-top: 20px; }
         .section-title {
             font-size: 1.25rem;
             font-weight: 600;
@@ -96,7 +115,7 @@
             border-radius: 10px;
             border: 1px solid var(--border-color);
             transition: transform 0.2s;
-            position: relative; /* Necessário para posicionar o botão de deletar */
+            position: relative; 
         }
 
         .car-card:hover { transform: translateY(-4px); border-color: var(--accent-color); }
@@ -106,11 +125,10 @@
             justify-content: space-between;
             align-items: start;
             margin-bottom: 12px;
-            padding-right: 30px; /* Espaço para o botão excluir não ficar em cima do texto */
+            padding-right: 60px; /* Espaço para botões */
         }
 
         .car-model { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
-        
         .car-tag {
             background: rgba(59, 130, 246, 0.1);
             color: var(--accent-color);
@@ -124,25 +142,29 @@
         .detail-item { display: flex; flex-direction: column; }
         .detail-label { font-size: 0.7rem; text-transform: uppercase; opacity: 0.6; margin-bottom: 2px; }
 
-        /* Botão de Deletar */
-        .btn-delete {
+        /* Botões de Ação no Card */
+        .card-actions {
             position: absolute;
             top: 20px;
             right: 20px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
             background: transparent;
             border: none;
             color: var(--border-color);
             cursor: pointer;
             transition: color 0.2s;
-            padding: 5px;
+            padding: 2px;
         }
 
-        .btn-delete:hover {
-            color: var(--error-color);
-        }
+        .btn-icon:hover { color: var(--text-primary); }
+        .btn-icon.delete:hover { color: var(--error-color); }
+        .btn-icon.edit:hover { color: var(--warning-color); }
 
-        /* Ícone SVG da lixeira */
-        .icon-trash { width: 20px; height: 20px; }
+        .icon-svg { width: 20px; height: 20px; }
 
     </style>
 </head>
@@ -155,7 +177,7 @@
 
     <div class="form-wrapper">
         <div class="input-group">
-            <label>Veículo</label>
+            <input type="hidden" id="idCarro"> <label>Veículo</label>
             <input type="text" id="modelo" placeholder="Ex: Honda Civic" autocomplete="off">
             
             <label>Ano de Fabricação</label>
@@ -164,8 +186,13 @@
             <label>Placa</label>
             <input type="text" id="placa" placeholder="Ex: ABC-1234" style="text-transform: uppercase;">
             
-            <button onclick="salvarCarro()" id="btnSalvar">Cadastrar Veículo</button>
+            <button onclick="salvarOuAtualizar()" id="btnSalvar">Cadastrar Veículo</button>
+            <button onclick="cancelarEdicao()" id="btnCancelar" style="display: none; background: transparent; border: 1px solid var(--border-color); margin-top: -5px;">Cancelar Edição</button>
         </div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="busca" placeholder="Buscar por modelo ou placa..." oninput="buscarCarros()">
     </div>
 
     <div class="inventory-section">
@@ -175,113 +202,162 @@
     </div>
 
     <script>
-        // Exemplo (use o SEU link):
-        const API_URL = 'https://av3-americo.onrender.com/carros';
+        // ATENÇÃO: TROQUE PELA URL DO RENDER SE FOR USAR NA NUVEM
+        const API_URL = 'http://127.0.0.1:5000/carros';
 
-        async function salvarCarro() {
-            const modeloInput = document.getElementById('modelo');
-            const anoInput = document.getElementById('ano');
-            const placaInput = document.getElementById('placa');
-            const btn = document.getElementById('btnSalvar');
-
-            const modelo = modeloInput.value.trim();
-            const ano = anoInput.value.trim();
-            const placa = placaInput.value.trim().toUpperCase();
-
-            if (!modelo || !ano || !placa) {
-                alert("Preencha todos os campos.");
-                return;
+        // Função que decide se CRIA ou ATUALIZA
+        async function salvarOuAtualizar() {
+            const id = document.getElementById('idCarro').value;
+            
+            if (id) {
+                await atualizarCarro(id);
+            } else {
+                await cadastrarCarro();
             }
+        }
 
+        async function cadastrarCarro() {
+            const modelo = document.getElementById('modelo').value;
+            const ano = document.getElementById('ano').value;
+            const placa = document.getElementById('placa').value;
+
+            if (!modelo || !ano || !placa) return alert("Preencha todos os campos.");
+
+            await enviarDados(API_URL, 'POST', { modelo, ano, placa });
+        }
+
+        async function atualizarCarro(id) {
+            const modelo = document.getElementById('modelo').value;
+            const ano = document.getElementById('ano').value;
+            const placa = document.getElementById('placa').value;
+
+            await enviarDados(`${API_URL}/${id}`, 'PUT', { modelo, ano, placa });
+            cancelarEdicao(); // Limpa o formulário e volta ao normal
+        }
+
+        async function enviarDados(url, metodo, corpo) {
+            const btn = document.getElementById('btnSalvar');
             btn.innerText = "Processando...";
             btn.disabled = true;
 
             try {
-                const resposta = await fetch(API_URL, {
-                    method: 'POST',
+                const resposta = await fetch(url, {
+                    method: metodo,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ modelo, ano, placa })
+                    body: JSON.stringify(corpo)
                 });
 
                 if (resposta.ok) {
-                    await carregarCarros();
-                    modeloInput.value = '';
-                    anoInput.value = '';
-                    placaInput.value = '';
+                    buscarCarros(); // Recarrega a lista
+                    limparFormulario();
                 } else {
-                    alert("Erro ao cadastrar.");
+                    const erro = await resposta.json();
+                    alert("Erro: " + erro.erro);
                 }
             } catch (e) {
-                console.error(e);
+                alert("Erro de conexão.");
             } finally {
                 btn.innerText = "Cadastrar Veículo";
                 btn.disabled = false;
             }
         }
 
-        // Função NOVA para deletar
+        // Preenche o formulário para edição
+        function prepararEdicao(id, modelo, ano, placa) {
+            document.getElementById('idCarro').value = id;
+            document.getElementById('modelo').value = modelo;
+            document.getElementById('ano').value = ano;
+            document.getElementById('placa').value = placa;
+
+            // Muda o visual do botão
+            const btn = document.getElementById('btnSalvar');
+            btn.innerText = "Salvar Alterações";
+            btn.classList.add('edit-mode');
+            document.getElementById('btnCancelar').style.display = 'block';
+            
+            // Rola a tela para cima
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelarEdicao() {
+            limparFormulario();
+            const btn = document.getElementById('btnSalvar');
+            btn.innerText = "Cadastrar Veículo";
+            btn.classList.remove('edit-mode');
+            document.getElementById('btnCancelar').style.display = 'none';
+        }
+
+        function limparFormulario() {
+            document.getElementById('idCarro').value = '';
+            document.getElementById('modelo').value = '';
+            document.getElementById('ano').value = '';
+            document.getElementById('placa').value = '';
+        }
+
         async function deletarCarro(id) {
-            if(!confirm("Tem certeza que deseja excluir este veículo?")) return;
+            if(!confirm("Excluir este veículo?")) return;
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            buscarCarros();
+        }
+
+        // Busca com filtro
+        async function buscarCarros() {
+            const termo = document.getElementById('busca').value;
+            let url = API_URL;
+            if (termo) {
+                url += `?termo=${encodeURIComponent(termo)}`;
+            }
 
             try {
-                const resposta = await fetch(`${API_URL}/${id}`, {
-                    method: 'DELETE'
-                });
-
-                if (resposta.ok) {
-                    carregarCarros(); // Recarrega a lista
-                } else {
-                    alert("Erro ao excluir.");
-                }
+                const resposta = await fetch(url);
+                const carros = await resposta.json();
+                renderizarLista(carros);
             } catch (e) {
-                alert("Erro de conexão.");
+                console.log(e);
             }
         }
 
-        async function carregarCarros() {
+        function renderizarLista(carros) {
             const lista = document.getElementById('lista');
-            try {
-                const resposta = await fetch(API_URL);
-                const carros = await resposta.json();
-                
-                lista.innerHTML = '';
-                
-                if (carros.length === 0) {
-                    lista.innerHTML = '<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center;">Nenhum veículo cadastrado.</p>';
-                    return;
-                }
+            lista.innerHTML = '';
 
-                carros.forEach(c => {
-                    lista.innerHTML += `
-                        <div class="car-card">
-                            <button class="btn-delete" onclick="deletarCarro('${c.id}')" title="Excluir">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon-trash" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            if (carros.length === 0) {
+                lista.innerHTML = '<p style="color: var(--text-secondary);">Nenhum veículo encontrado.</p>';
+                return;
+            }
+
+            carros.forEach(c => {
+                lista.innerHTML += `
+                    <div class="car-card">
+                        <div class="card-actions">
+                            <button class="btn-icon edit" onclick="prepararEdicao('${c.id}', '${c.modelo}', '${c.ano}', '${c.placa}')" title="Editar">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon-svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </button>
+                            <button class="btn-icon delete" onclick="deletarCarro('${c.id}')" title="Excluir">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon-svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
-                            <div class="card-header">
-                                <div class="car-model">${c.modelo}</div>
-                                <div class="car-tag">${c.ano}</div>
-                            </div>
-                            <div class="car-details">
-                                <div class="detail-item">
-                                    <span class="detail-label">Placa</span>
-                                    <span>${c.placa}</span>
-                                </div>
-                                <div class="detail-item">
-                                    <span class="detail-label">Status</span>
-                                    <span style="color: #4ade80;">Disponível</span>
-                                </div>
+                        </div>
+                        <div class="card-header">
+                            <div class="car-model">${c.modelo}</div>
+                            <div class="car-tag">${c.ano}</div>
+                        </div>
+                        <div class="car-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Placa</span>
+                                <span>${c.placa}</span>
                             </div>
                         </div>
-                    `;
-                });
-            } catch (e) {
-                lista.innerHTML = '<p>Erro de conexão.</p>';
-            }
+                    </div>
+                `;
+            });
         }
 
-        carregarCarros();
+        // Inicia carregando todos
+        buscarCarros();
     </script>
 </body>
 </html>
