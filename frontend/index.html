@@ -28,7 +28,7 @@
             color: var(--text-main);
             height: 100vh;
             display: flex;
-            overflow: hidden;
+            overflow: hidden; /* No desktop não tem scroll na janela principal */
         }
 
         /* --- SIDEBAR --- */
@@ -42,6 +42,7 @@
             gap: 20px;
             backdrop-filter: blur(10px);
             z-index: 10;
+            flex-shrink: 0;
         }
 
         .logo { font-size: 1.5rem; font-weight: 800; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
@@ -50,7 +51,7 @@
         .menu-item {
             display: flex; align-items: center; gap: 12px; padding: 12px 16px;
             color: var(--text-muted); text-decoration: none; border-radius: 12px;
-            transition: 0.3s; font-weight: 500; cursor: pointer;
+            transition: 0.3s; font-weight: 500; cursor: pointer; white-space: nowrap;
         }
         .menu-item:hover, .menu-item.active { background: rgba(99, 102, 241, 0.1); color: var(--accent); }
 
@@ -133,6 +134,74 @@
         .news-item:last-child { border: none; }
         .news-img { width: 100px; height: 70px; border-radius: 8px; object-fit: cover; }
         .tag { font-size: 0.7rem; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: block; }
+
+        /* ========================================= */
+        /* MEDIA QUERIES (RESPONSIVIDADE MOBILE)     */
+        /* ========================================= */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column; /* Empilha Sidebar e Conteúdo */
+                height: auto; /* Altura automática para permitir scroll */
+                overflow-y: auto; /* Habilita scroll na página toda */
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 20px;
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+            }
+            
+            .sidebar nav {
+                display: flex; /* Menu horizontal */
+                overflow-x: auto; /* Scroll lateral se precisar */
+                gap: 10px;
+                padding-bottom: 5px;
+            }
+
+            /* Esconde o footer da sidebar no mobile */
+            .sidebar div[style*="margin-top: auto"] {
+                display: none;
+            }
+
+            .main-content {
+                padding: 20px;
+                overflow: visible;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            .input-group[style*="width: 300px"] {
+                width: 100% !important; /* Busca full width */
+            }
+
+            /* Transforma grids de 2 ou 3 colunas em 1 coluna */
+            .stats-container, 
+            .dashboard-grid, 
+            .news-grid,
+            .glass-panel div[style*="grid-template-columns"] {
+                grid-template-columns: 1fr !important;
+                gap: 20px;
+            }
+
+            /* Botões do formulário empilhados */
+            .glass-panel div[style*="display: flex"] {
+                flex-direction: column; 
+            }
+            
+            #btnSalvar, #btnCancelar {
+                width: 100% !important;
+            }
+
+            .cars-grid {
+                grid-template-columns: 1fr; /* 1 carro por linha */
+            }
+            
+            .page-title h2 { font-size: 1.5rem; }
+        }
 
     </style>
 </head>
@@ -284,7 +353,7 @@
                     </div>
 
                     <div class="news-item">
-                        <img src="https://plus.unsplash.com/premium_photo-1682141942051-c0a4e4a9073e?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="news-img" class="news-img">
+                        <img src="https://plus.unsplash.com/premium_photo-1682141942051-c0a4e4a9073e?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="news-img" class="news-img" class="news-img">
                         <div>
                             <span class="tag">Tecnologia</span>
                             <h3>Manutenção Preventiva com IA</h3>
@@ -293,7 +362,7 @@
                     </div>
 
                     <div class="news-item">
-                        <img src="https://plus.unsplash.com/premium_photo-1658527217852-a4fba95fcd66?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="news-img" class="news-img">
+                        <img src="https://plus.unsplash.com/premium_photo-1658527217852-a4fba95fcd66?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="news-img" class="news-img" class="news-img">
                         <div>
                             <span class="tag">Sustentabilidade</span>
                             <h3>Combustíveis Sintéticos</h3>
@@ -340,7 +409,6 @@
 
     <script>
         // --- CONFIGURAÇÃO ---
-        // AQUI ESTÁ O SEU LINK DO RENDER JÁ CONFIGURADO:
         const API_URL = 'https://av3-americo.onrender.com/carros';
 
         // --- SISTEMA DE ABAS ---
@@ -428,7 +496,6 @@
         }
 
         function renderizar(carros) {
-            // Renderiza na Dashboard e no Inventário
             const html = carros.map(c => `
                 <div class="car-card">
                     <div class="card-actions">
@@ -452,7 +519,6 @@
             document.getElementById('total-carros').innerText = carros.length;
             document.getElementById('valor-frota').innerText = "R$ " + (carros.length * 45000).toLocaleString();
 
-            // Atualiza os Gráficos
             atualizarGraficos(carros);
         }
 
@@ -490,7 +556,6 @@
             buscarCarros();
         }
 
-        // --- FUNÇÃO DE GRÁFICOS (DINÂMICO) ---
         function atualizarGraficos(carros) {
             let antigos = 0;   // < 1990
             let classicos = 0; // 1990 - 2010
@@ -522,8 +587,8 @@
             setBar(3, novos);
         }
 
-        // Inicia a aplicação
         buscarCarros();
     </script>
 </body>
 </html>
+```
