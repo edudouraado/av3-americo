@@ -4,4 +4,3 @@ class Carro:
         self.modelo = modelo
         self.ano = ano
         self.placa = placa
-        # Isso cumpre o "M" do MVC.
