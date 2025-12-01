@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/github/license/Ileriayo/markdown-badges?style=for-the-badge)
 
 <div align="center">
-  <img src="./assets/dashboard-preview.png" alt="Preview do Dashboard" width="100%">
+  <img src=".\assets\dashboard-preview.png.png" alt="Preview do Dashboard" width="100%">
 </div>
 
 ## 📖 Sobre o Projeto
@@ -61,4 +61,4 @@ Se desejar rodar o projeto na sua máquina, siga os passos abaixo:
 ### 1. Clone o repositório
 ```bash
 git clone [https://github.com/edudouraado/av3-americo](https://github.com/edudouraado/av3-americo)
-cd NOME-DO-REPO
+cd av3-americo
